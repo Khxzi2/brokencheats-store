@@ -77,7 +77,8 @@ export default function DownloadClientPage({ asset }: DownloadClientPageProps) {
       }
 
       if (downloadUrl) {
-        window.open(downloadUrl, '_blank');
+        const wrappedUrl = `/api/shrink?url=${encodeURIComponent(downloadUrl)}`;
+        window.open(wrappedUrl, '_blank');
       }
     }
   };

@@ -133,6 +133,8 @@ export default function RootLayout({
             })
           }}
         />
+        {/* Ad Network Script */}
+        <script src="https://quge5.com/88/tag.min.js" data-zone="265248" async data-cfasync="false"></script>
         {/* Register Service Worker for PWA */}
         <script
           dangerouslySetInnerHTML={{
