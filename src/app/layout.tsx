@@ -86,7 +86,6 @@ export const metadata: Metadata = {
     },
   },
   other: {
-    monetag: 'd9c8d0f52cbcec36f3a1278fafd65345',
     // Discord embed color
     'theme-color': '#1e3a8a',
     // WhatsApp / general
@@ -111,7 +110,6 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
-        <meta name="monetag" content="d9c8d0f52cbcec36f3a1278fafd65345" />
         <meta name="theme-color" content="#1e40af" />
         <meta name="color-scheme" content="dark" />
         {/* JSON-LD Schema.org structured data */}
