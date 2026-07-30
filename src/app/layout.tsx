@@ -12,6 +12,7 @@ const inter = Inter({ subsets: ['latin'], display: 'swap', fallback: ['system-ui
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://free.brokencheats.store'),
+  manifest: '/manifest.json',
   title: {
     default: 'BrokenCheats Free Store — Game Optimizers, Latency Tweaks & FPS Boosters',
     template: '%s | BrokenCheats Free Store',
