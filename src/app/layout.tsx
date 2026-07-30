@@ -5,6 +5,8 @@ import './globals.css';
 import Navbar from '@/components/Navbar';
 import GlobalAds from '@/components/GlobalAds';
 import AdsterraBanners from '@/components/AdsterraBanners';
+import AdScripts from '@/components/AdScripts';
+import AdBannerWrapper from '@/components/AdBannerWrapper';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap', fallback: ['system-ui', 'sans-serif'] });
 
@@ -133,8 +135,7 @@ export default function RootLayout({
             })
           }}
         />
-        {/* Ad Network Script */}
-        <script src="https://quge5.com/88/tag.min.js" data-zone="265248" async data-cfasync="false"></script>
+        <AdScripts />
         {/* Register Service Worker for PWA */}
         <script
           dangerouslySetInnerHTML={{
@@ -153,11 +154,11 @@ export default function RootLayout({
       <body className={`${inter.className} min-h-screen bg-[#0b0c10] text-slate-100 antialiased flex flex-col justify-between`}>
         <div>
           <Navbar />
-          <div className="flex justify-center w-full py-4 max-w-7xl mx-auto"><AdsterraBanners format="728x90" /></div>
+          <AdBannerWrapper />
           <main className="min-h-[calc(100vh-4rem-5rem)]">
             {children}
           </main>
-          <div className="flex justify-center w-full py-4 max-w-7xl mx-auto"><AdsterraBanners format="728x90" /></div>
+          <AdBannerWrapper />
         </div>
         
         {/* Global Footer */}
