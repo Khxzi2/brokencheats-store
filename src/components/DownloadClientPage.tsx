@@ -18,6 +18,7 @@ export default function DownloadClientPage({ asset }: DownloadClientPageProps) {
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
   const [downloadCount, setDownloadCount] = useState<number>(asset.download_count);
   const [downloadTriggered, setDownloadTriggered] = useState<boolean>(false);
+  const [missionCompleted, setMissionCompleted] = useState<boolean>(false);
 
   useEffect(() => {
     // Record page view analytics
@@ -40,6 +41,12 @@ export default function DownloadClientPage({ asset }: DownloadClientPageProps) {
   }, [timer]);
 
   const handleDirectDownload = async () => {
+    if (!missionCompleted) {
+      window.open('https://www.effectivecpmnetwork.com/wzr03mwh?key=537b2ed7b938a948c769d7a6d4182468', '_blank');
+      setMissionCompleted(true);
+      return;
+    }
+
     try {
       setDownloadTriggered(true);
       // Trigger download count increment API call asynchronously
@@ -67,7 +74,7 @@ export default function DownloadClientPage({ asset }: DownloadClientPageProps) {
         const { data } = supabase.storage.from('assets_bucket').getPublicUrl(asset.file_path);
         downloadUrl = data.publicUrl;
       }
-      
+
       if (downloadUrl) {
         window.open(downloadUrl, '_blank');
       }
@@ -81,10 +88,10 @@ export default function DownloadClientPage({ asset }: DownloadClientPageProps) {
       <div className="absolute top-20 right-10 w-[400px] h-[400px] bg-red-600/10 blur-[140px] rounded-full pointer-events-none" />
 
       <div className="max-w-4xl mx-auto relative z-10 space-y-8">
-        
+
         {/* Navigation back button */}
-        <Link 
-          href="/assets" 
+        <Link
+          href="/assets"
           className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -175,8 +182,19 @@ export default function DownloadClientPage({ asset }: DownloadClientPageProps) {
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-red-600 via-blue-600 to-blue-600 text-white shadow-xl shadow-blue-500/25 hover:opacity-95 transition-opacity glow-blue"
                   >
                     <Download className="w-4 h-4" />
-                    <span>Download File Directly</span>
+                    <span>{missionCompleted ? 'Download File Directly' : 'Unlock Download (Task)'}</span>
                   </button>
+
+                  {!missionCompleted && (
+                    <a
+                      href="https://omg10.com/4/11455896"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-xl font-bold text-sm bg-slate-800 text-white hover:bg-slate-700 transition-colors"
+                    >
+                      <span>Extra Mission (Optional)</span>
+                    </a>
+                  )}
 
                   {/* Optional Monetized Ad-Fly Link (Linkvertise / AdMaven) */}
                   {asset.ad_fly_link && (

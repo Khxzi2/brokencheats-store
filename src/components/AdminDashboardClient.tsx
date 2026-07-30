@@ -1,19 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Asset } from '@/lib/types/asset';
 import {
   ShieldCheck, Plus, Trash2, Eye, EyeOff, Sparkles,
   BarChart2, FileUp, CheckCircle2, Pencil, X, Save,
-  AlertTriangle
+  AlertTriangle, Image as ImageIcon, Video, Music, Link, RefreshCw, ExternalLink
 } from 'lucide-react';
 
 interface AdminDashboardClientProps {
   initialAssets: Asset[];
 }
 
+// Helper: extract YouTube video ID from URL or raw ID
+function extractYoutubeId(val: string): string {
+  if (!val) return '';
+  const match = val.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/);
+  return match ? match[1] : val.trim();
+}
+
 export default function AdminDashboardClient({ initialAssets }: AdminDashboardClientProps) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [checkingSession, setCheckingSession] = useState<boolean>(true);
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [authError, setAuthError] = useState<string>('');
@@ -27,25 +35,55 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
   const [slug, setSlug] = useState<string>('');
   const [directUrl, setDirectUrl] = useState<string>('');
   const [imageUrl, setImageUrl] = useState<string>('');
-  const [galleryUrls, setGalleryUrls] = useState<string>('');
+  const [galleryItems, setGalleryItems] = useState<string[]>(['']);
   const [videoUrl, setVideoUrl] = useState<string>('');
   const [audioUrl, setAudioUrl] = useState<string>('');
   const [youtubeVideoId, setYoutubeVideoId] = useState<string>('');
   const [instructions, setInstructions] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [formSuccess, setFormSuccess] = useState<string>('');
 
-  // Edit modal state
+  // Edit modal state — full fields
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [editTitle, setEditTitle] = useState<string>('');
+  const [editCategory, setEditCategory] = useState<string>('');
+  const [editSlug, setEditSlug] = useState<string>('');
   const [editDirectUrl, setEditDirectUrl] = useState<string>('');
+  const [editImageUrl, setEditImageUrl] = useState<string>('');
+  const [editGalleryItems, setEditGalleryItems] = useState<string[]>(['']);
+  const [editVideoUrl, setEditVideoUrl] = useState<string>('');
+  const [editAudioUrl, setEditAudioUrl] = useState<string>('');
+  const [editYoutubeId, setEditYoutubeId] = useState<string>('');
+  const [editInstructions, setEditInstructions] = useState<string>('');
   const [editStatus, setEditStatus] = useState<'active' | 'hidden'>('active');
   const [editSaving, setEditSaving] = useState<boolean>(false);
+  // Edit file uploads
+  const [editThumbnailFile, setEditThumbnailFile] = useState<File | null>(null);
+  const [editAudioFile, setEditAudioFile] = useState<File | null>(null);
+  const [editGalleryFiles, setEditGalleryFiles] = useState<File[]>([]);
 
   // Delete confirm state
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
   const [deleteConfirmSlug, setDeleteConfirmSlug] = useState<string>('');
+
+  // Check session cookie on mount
+  useEffect(() => {
+    fetch('/api/admin/login')
+      .then(r => r.json())
+      .then(d => { if (d.authenticated) setIsAuthenticated(true); })
+      .catch(() => {})
+      .finally(() => setCheckingSession(false));
+  }, []);
+
+  const handleTitleChange = (val: string) => {
+    setTitle(val);
+    const autoSlug = val.toLowerCase().trim().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    setSlug(autoSlug);
+  };
 
   // Handle staff login
   const handleLogin = async (e: React.FormEvent) => {
@@ -68,13 +106,25 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
     }
   };
 
-  const handleTitleChange = (val: string) => {
-    setTitle(val);
-    const autoSlug = val.toLowerCase().trim().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
-    setSlug(autoSlug);
+  // Upload helper — server-side
+  const uploadFile = async (f: File, slugPrefix: string): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append('file', f);
+    formData.append('slug', slugPrefix);
+    const res = await fetch('/api/admin/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    return data.success ? data.filePath : null;
   };
 
-  // Create asset — uses server-side upload + admin API
+  // Gallery helpers
+  const addGalleryItem = (setItems: React.Dispatch<React.SetStateAction<string[]>>) =>
+    setItems(prev => [...prev, '']);
+  const removeGalleryItem = (idx: number, setItems: React.Dispatch<React.SetStateAction<string[]>>) =>
+    setItems(prev => prev.filter((_, i) => i !== idx));
+  const updateGalleryItem = (idx: number, val: string, setItems: React.Dispatch<React.SetStateAction<string[]>>) =>
+    setItems(prev => prev.map((v, i) => i === idx ? val : v));
+
+  // Create asset
   const handleCreateAsset = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -88,28 +138,32 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
 
     try {
       let uploadedFilePath: string | null = null;
-
       if (file) {
-        // Use server-side upload route (service role) instead of client-side
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('slug', slug);
-
-        const uploadRes = await fetch('/api/admin/upload', {
-          method: 'POST',
-          body: formData,
-        });
-        const uploadData = await uploadRes.json();
-
-        if (!uploadData.success) {
-          throw new Error('File upload failed: ' + uploadData.error);
-        }
-        uploadedFilePath = uploadData.filePath;
+        const path = await uploadFile(file, slug);
+        if (!path) throw new Error('File upload failed');
+        uploadedFilePath = path;
       }
 
-      const parsedGallery = galleryUrls
-        ? galleryUrls.split(',').map(s => s.trim()).filter(Boolean)
-        : null;
+      let uploadedThumbnail = imageUrl;
+      if (thumbnailFile) {
+        uploadedThumbnail = await uploadFile(thumbnailFile, `${slug}-thumb`) || imageUrl;
+      }
+
+      // Gallery: merge URL items + uploaded files
+      const galleryFromUrls = galleryItems.map(s => s.trim()).filter(Boolean);
+      const galleryFromFiles: string[] = [];
+      for (let i = 0; i < galleryFiles.length; i++) {
+        const path = await uploadFile(galleryFiles[i], `${slug}-gallery-${i}`);
+        if (path) galleryFromFiles.push(path);
+      }
+      const finalGallery = [...galleryFromUrls, ...galleryFromFiles];
+
+      let uploadedAudio = audioUrl;
+      if (audioFile) {
+        uploadedAudio = await uploadFile(audioFile, `${slug}-audio`) || audioUrl;
+      }
+
+      const ytId = extractYoutubeId(youtubeVideoId);
 
       const res = await fetch('/api/admin/assets', {
         method: 'POST',
@@ -120,11 +174,11 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
           slug,
           direct_download_url: directUrl || null,
           file_path: uploadedFilePath,
-          image_url: imageUrl || null,
-          gallery_images: parsedGallery,
+          image_url: uploadedThumbnail || null,
+          gallery_images: finalGallery.length > 0 ? finalGallery : null,
           video_url: videoUrl || null,
-          audio_url: audioUrl || null,
-          youtube_video_id: youtubeVideoId || null,
+          audio_url: uploadedAudio || null,
+          youtube_video_id: ytId || null,
           instructions: instructions || null,
           status: 'active',
         }),
@@ -132,18 +186,13 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
 
       const data = await res.json();
       if (data.success && data.asset) {
-        setAssets([data.asset, ...assets]);
-        setFormSuccess(`Successfully published: ${data.asset.title}`);
-        setTitle('');
-        setSlug('');
-        setDirectUrl('');
-        setImageUrl('');
-        setGalleryUrls('');
-        setVideoUrl('');
-        setAudioUrl('');
-        setYoutubeVideoId('');
-        setInstructions('');
-        setFile(null);
+        setAssets(prev => [data.asset, ...prev]);
+        setFormSuccess(`✓ Published: ${data.asset.title} — live at /assets/${data.asset.slug}`);
+        // Reset form
+        setTitle(''); setSlug(''); setDirectUrl(''); setImageUrl('');
+        setGalleryItems(['']); setVideoUrl(''); setAudioUrl('');
+        setYoutubeVideoId(''); setInstructions('');
+        setFile(null); setThumbnailFile(null); setGalleryFiles([]); setAudioFile(null);
       } else {
         alert('Failed to publish: ' + data.error);
       }
@@ -154,7 +203,7 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
     }
   };
 
-  // Toggle active/hidden — now uses admin PATCH API
+  // Toggle active/hidden
   const handleToggleStatus = async (assetSlug: string, currentStatus: string) => {
     const nextStatus = currentStatus === 'active' ? 'hidden' : 'active';
     try {
@@ -165,22 +214,36 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
       });
       const data = await res.json();
       if (data.success) {
-        setAssets(assets.map(a => a.slug === assetSlug ? { ...a, status: nextStatus as any } : a));
+        setAssets(prev => prev.map(a => a.slug === assetSlug ? { ...a, status: nextStatus as any } : a));
       } else {
         alert('Failed to toggle: ' + data.error);
       }
     } catch (err) {
-      console.error('Failed toggling status:', err);
       alert('Network error toggling status');
     }
   };
 
-  // Open edit modal
+  // Open edit modal — populate all fields
   const handleOpenEdit = (asset: Asset) => {
     setEditingAsset(asset);
     setEditTitle(asset.title);
+    setEditCategory(asset.category || 'Game Optimizer');
+    setEditSlug(asset.slug);
     setEditDirectUrl(asset.direct_download_url || '');
-    setEditStatus(asset.status);
+    setEditImageUrl(asset.image_url || '');
+    setEditGalleryItems(
+      asset.gallery_images && asset.gallery_images.length > 0
+        ? asset.gallery_images
+        : ['']
+    );
+    setEditVideoUrl(asset.video_url || '');
+    setEditAudioUrl(asset.audio_url || '');
+    setEditYoutubeId(asset.youtube_video_id || '');
+    setEditInstructions(asset.instructions || '');
+    setEditStatus(asset.status as 'active' | 'hidden');
+    setEditThumbnailFile(null);
+    setEditAudioFile(null);
+    setEditGalleryFiles([]);
   };
 
   // Save edit
@@ -188,18 +251,46 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
     if (!editingAsset) return;
     setEditSaving(true);
     try {
+      // Handle uploads
+      let finalImageUrl = editImageUrl;
+      if (editThumbnailFile) {
+        finalImageUrl = await uploadFile(editThumbnailFile, `${editSlug}-thumb`) || editImageUrl;
+      }
+
+      let finalAudioUrl = editAudioUrl;
+      if (editAudioFile) {
+        finalAudioUrl = await uploadFile(editAudioFile, `${editSlug}-audio`) || editAudioUrl;
+      }
+
+      const galleryFromUrls = editGalleryItems.map(s => s.trim()).filter(Boolean);
+      const galleryFromFiles: string[] = [];
+      for (let i = 0; i < editGalleryFiles.length; i++) {
+        const path = await uploadFile(editGalleryFiles[i], `${editSlug}-gallery-${Date.now()}-${i}`);
+        if (path) galleryFromFiles.push(path);
+      }
+      const finalGallery = [...galleryFromUrls, ...galleryFromFiles];
+
+      const ytId = extractYoutubeId(editYoutubeId);
+
       const res = await fetch(`/api/admin/assets/${editingAsset.slug}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: editTitle,
+          category: editCategory,
           direct_download_url: editDirectUrl || null,
+          image_url: finalImageUrl || null,
+          gallery_images: finalGallery.length > 0 ? finalGallery : null,
+          video_url: editVideoUrl || null,
+          audio_url: finalAudioUrl || null,
+          youtube_video_id: ytId || null,
+          instructions: editInstructions || null,
           status: editStatus,
         }),
       });
       const data = await res.json();
       if (data.success && data.asset) {
-        setAssets(assets.map(a => a.slug === editingAsset.slug ? data.asset : a));
+        setAssets(prev => prev.map(a => a.slug === editingAsset.slug ? { ...a, ...data.asset } : a));
         setEditingAsset(null);
       } else {
         alert('Failed to save: ' + data.error);
@@ -211,16 +302,14 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
     }
   };
 
-  // Delete asset — uses admin DELETE API
+  // Delete asset
   const handleDelete = async () => {
     if (!deletingSlug) return;
     try {
-      const res = await fetch(`/api/admin/assets/${deletingSlug}`, {
-        method: 'DELETE',
-      });
+      const res = await fetch(`/api/admin/assets/${deletingSlug}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
-        setAssets(assets.filter(a => a.slug !== deletingSlug));
+        setAssets(prev => prev.filter(a => a.slug !== deletingSlug));
         setDeletingSlug(null);
         setDeleteConfirmSlug('');
       } else {
@@ -246,6 +335,14 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
       setLoadingStats(false);
     }
   };
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen bg-[#0b0c10] flex items-center justify-center">
+        <div className="text-slate-400 text-sm animate-pulse">Checking session...</div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
@@ -287,11 +384,82 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
             >
               Authenticate Staff Key
             </button>
+            <p className="text-center text-[10px] text-slate-600">Session persists for 7 days</p>
           </form>
         </div>
       </div>
     );
   }
+
+  // ── INPUT FIELD COMPONENTS ──────────────────────────────────────────────────
+  const inputCls = "w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500";
+  const labelCls = "block text-xs font-medium text-slate-400 mb-1";
+  const fileCls = "w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer";
+
+  // Gallery URL row component (inline)
+  const GalleryRow = ({
+    items, setItems, files, setFiles, slugBase
+  }: {
+    items: string[], setItems: React.Dispatch<React.SetStateAction<string[]>>,
+    files: File[], setFiles: React.Dispatch<React.SetStateAction<File[]>>,
+    slugBase: string
+  }) => (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className={labelCls}>Gallery Images (URLs or Uploads)</label>
+        <button
+          type="button"
+          onClick={() => addGalleryItem(setItems)}
+          className="text-[10px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1"
+        >
+          <Plus className="w-3 h-3" /> Add URL
+        </button>
+      </div>
+      {items.map((url, idx) => (
+        <div key={idx} className="flex gap-2 items-center">
+          <input
+            type="text"
+            placeholder={`Gallery image ${idx + 1} URL`}
+            value={url}
+            onChange={e => updateGalleryItem(idx, e.target.value, setItems)}
+            className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+          />
+          {url && <img src={url} alt="" className="w-8 h-8 rounded object-cover border border-slate-700 shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+          {items.length > 1 && (
+            <button type="button" onClick={() => removeGalleryItem(idx, setItems)} className="text-red-400 hover:text-red-300 shrink-0">
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      ))}
+      {/* Upload multiple files */}
+      <div>
+        <label className="text-[10px] text-slate-500 block mb-1">Or upload image files:</label>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={e => setFiles(e.target.files ? Array.from(e.target.files) : [])}
+          className={fileCls}
+        />
+        {files.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {files.map((f, i) => (
+              <span key={i} className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded">{f.name}</span>
+            ))}
+          </div>
+        )}
+      </div>
+      {/* Preview existing gallery URLs */}
+      {items.filter(Boolean).length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-1">
+          {items.filter(Boolean).map((url, i) => (
+            <img key={i} src={url} alt={`gallery-${i}`} className="w-14 h-10 object-cover rounded border border-slate-700" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0b0c10] text-slate-100 py-12 px-4 md:px-8">
@@ -307,6 +475,12 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
             <span className="px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
               Authenticated Admin
             </span>
+            <button
+              onClick={() => { document.cookie = 'admin_session=; Max-Age=0; path=/'; setIsAuthenticated(false); }}
+              className="px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold hover:bg-red-500/20 transition-colors"
+            >
+              Logout
+            </button>
           </div>
         </div>
 
@@ -314,7 +488,7 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
           {/* Create New Asset Form */}
-          <div className="glass-card-cyber p-6 md:p-8 rounded-3xl space-y-6 lg:col-span-1">
+          <div className="glass-card-cyber p-6 md:p-8 rounded-3xl space-y-5 lg:col-span-1">
             <div className="flex items-center gap-2 text-blue-400 border-b border-slate-800 pb-3">
               <Plus className="w-5 h-5" />
               <h3 className="text-lg font-bold text-slate-100">Publish New Asset</h3>
@@ -328,20 +502,22 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
             )}
 
             <form onSubmit={handleCreateAsset} className="space-y-4">
+              {/* Title */}
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Asset Title</label>
+                <label className={labelCls}>Asset Title *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. FF Ultimate FPS Boost Config v2"
                   value={title}
                   onChange={e => handleTitleChange(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className={inputCls}
                 />
               </div>
 
+              {/* Slug */}
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Auto-Generated URL Slug</label>
+                <label className={labelCls}>URL Slug (auto-generated)</label>
                 <input
                   type="text"
                   required
@@ -351,28 +527,17 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-blue-400 focus:outline-none focus:border-blue-500"
                 />
                 <span className="text-[10px] text-slate-500 mt-1 block">
-                  Path: /download/{slug || '...'}
+                  URL: free.brokencheats.store/assets/{slug || '...'}
                 </span>
               </div>
 
+              {/* Category */}
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Upload File (Optional if Link provided)</label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    onChange={e => setFile(e.target.files?.[0] || null)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:uppercase file:bg-blue-500/20 file:text-blue-400 hover:file:bg-blue-500/30 transition-colors"
-                  />
-                  {file && <FileUp className="absolute right-3 top-2.5 w-4 h-4 text-blue-400" />}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Asset Category</label>
+                <label className={labelCls}>Category</label>
                 <select
                   value={category}
                   onChange={e => setCategory(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className={inputCls}
                 >
                   <option value="Game Optimizer">Game Optimizer</option>
                   <option value="Network Utility">Network Utility</option>
@@ -381,77 +546,129 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
                 </select>
               </div>
 
+              {/* Download File */}
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Direct Download Link (Optional if File uploaded)</label>
+                <label className={labelCls}>Upload Download File</label>
+                <input
+                  type="file"
+                  onChange={e => setFile(e.target.files?.[0] || null)}
+                  className={fileCls}
+                />
+                {file && <span className="text-[10px] text-emerald-400 mt-1 block">✓ {file.name}</span>}
+              </div>
+
+              {/* Direct URL */}
+              <div>
+                <label className={labelCls}>— OR — Direct Download Link</label>
                 <input
                   type="url"
                   placeholder="https://mediafire.com/download/file.zip"
                   value={directUrl}
                   onChange={e => setDirectUrl(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className={inputCls}
                 />
               </div>
 
+              {/* Thumbnail */}
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Thumbnail Image URL (Optional)</label>
-                <input
-                  type="url"
-                  placeholder="https://images.unsplash.com/... or /uploads/thumb.png"
-                  value={imageUrl}
-                  onChange={e => setImageUrl(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
-                />
+                <label className={labelCls}>Thumbnail Image</label>
+                <div className="flex gap-2">
+                  <div className="flex-1 space-y-1.5">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={e => setThumbnailFile(e.target.files?.[0] || null)}
+                      className={fileCls}
+                    />
+                    <input
+                      type="url"
+                      placeholder="Or paste image URL"
+                      value={imageUrl}
+                      onChange={e => setImageUrl(e.target.value)}
+                      className={inputCls}
+                    />
+                  </div>
+                  {(imageUrl || thumbnailFile) && (
+                    <div className="w-16 h-16 rounded-xl border border-slate-700 overflow-hidden shrink-0 bg-slate-900 flex items-center justify-center">
+                      {thumbnailFile ? (
+                        <img src={URL.createObjectURL(thumbnailFile)} alt="thumb preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <img src={imageUrl} alt="thumb preview" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Additional Gallery Image URLs (Comma-Separated)</label>
-                <input
-                  type="text"
-                  placeholder="https://img1.png, https://img2.jpg"
-                  value={galleryUrls}
-                  onChange={e => setGalleryUrls(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
-                />
-              </div>
+              {/* Gallery */}
+              <GalleryRow
+                items={galleryItems}
+                setItems={setGalleryItems}
+                files={galleryFiles}
+                setFiles={setGalleryFiles}
+                slugBase={slug}
+              />
 
+              {/* YouTube Video */}
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Video Demo Link (YouTube or MP4 URL)</label>
-                <input
-                  type="text"
-                  placeholder="https://youtu.be/... or https://domain.com/demo.mp4"
-                  value={videoUrl}
-                  onChange={e => setVideoUrl(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Audio Sound Test Preview URL (MP3/WAV)</label>
-                <input
-                  type="url"
-                  placeholder="https://domain.com/sound-test.mp3"
-                  value={audioUrl}
-                  onChange={e => setAudioUrl(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">YouTube Video Link / ID (Optional Tutorial)</label>
+                <label className={labelCls}>YouTube Video (URL or ID)</label>
                 <input
                   type="text"
-                  placeholder="e.g. dQw4w9WgXcQ or https://youtu.be/..."
+                  placeholder="https://youtu.be/dQw4w9WgXcQ or video ID"
                   value={youtubeVideoId}
                   onChange={e => setYoutubeVideoId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className={inputCls}
+                />
+                {youtubeVideoId && (
+                  <div className="mt-2 rounded-xl overflow-hidden border border-slate-700 aspect-video">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${extractYoutubeId(youtubeVideoId)}`}
+                      className="w-full h-full"
+                      allow="autoplay; encrypted-media"
+                      allowFullScreen
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Video URL (MP4 / external) */}
+              <div>
+                <label className={labelCls}>Video Demo URL (MP4 / external — optional)</label>
+                <input
+                  type="url"
+                  placeholder="https://cdn.example.com/demo.mp4"
+                  value={videoUrl}
+                  onChange={e => setVideoUrl(e.target.value)}
+                  className={inputCls}
                 />
               </div>
 
+              {/* Audio */}
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">How To Use / Installation Instructions (Optional)</label>
+                <label className={labelCls}>Audio Sound Test Preview</label>
+                <input
+                  type="file"
+                  accept="audio/*"
+                  onChange={e => setAudioFile(e.target.files?.[0] || null)}
+                  className={fileCls}
+                />
+                <input
+                  type="url"
+                  placeholder="Or paste MP3/WAV URL"
+                  value={audioUrl}
+                  onChange={e => setAudioUrl(e.target.value)}
+                  className={`${inputCls} mt-1.5`}
+                />
+                {audioFile && <audio controls src={URL.createObjectURL(audioFile)} className="w-full mt-2 rounded-xl" />}
+                {audioUrl && !audioFile && <audio controls src={audioUrl} className="w-full mt-2 rounded-xl" />}
+              </div>
+
+              {/* Instructions */}
+              <div>
+                <label className={labelCls}>How To Use / Install Instructions</label>
                 <textarea
                   rows={4}
-                  placeholder="Step 1: Download & extract ZIP...&#10;Step 2: Run as Administrator..."
+                  placeholder={"Step 1: Download & extract ZIP...\nStep 2: Run as Administrator..."}
                   value={instructions}
                   onChange={e => setInstructions(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500 resize-none"
@@ -463,12 +680,12 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
                 disabled={submitting}
                 className="w-full py-3 rounded-xl bg-gradient-to-r from-red-600 to-blue-600 text-white font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-opacity shadow-lg shadow-blue-500/20 disabled:opacity-50"
               >
-                {submitting ? 'Publishing...' : 'Publish Asset To Live Store'}
+                {submitting ? 'Publishing & Uploading...' : 'Publish Asset To Live Store'}
               </button>
             </form>
           </div>
 
-          {/* Asset List & Metrics Table */}
+          {/* Asset List & Metrics */}
           <div className="space-y-6 lg:col-span-2">
             <div className="glass-card-cyber p-6 rounded-3xl space-y-4">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -480,8 +697,9 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
                 <table className="w-full text-left text-xs text-slate-300">
                   <thead className="bg-slate-950/80 text-blue-300 font-mono uppercase text-[10px]">
                     <tr>
+                      <th className="p-3">Thumbnail</th>
                       <th className="p-3">Title &amp; Slug</th>
-                      <th className="p-3">Downloads</th>
+                      <th className="p-3">DLs</th>
                       <th className="p-3">Status</th>
                       <th className="p-3 text-right">Actions</th>
                     </tr>
@@ -490,8 +708,22 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
                     {assets.map(asset => (
                       <tr key={asset.id} className="hover:bg-slate-900/50 transition-colors">
                         <td className="p-3">
-                          <div className="font-bold text-slate-100">{asset.title}</div>
+                          <div className="w-12 h-10 rounded-lg border border-slate-700 overflow-hidden bg-slate-900 flex items-center justify-center">
+                            {asset.image_url ? (
+                              <img src={asset.image_url} alt="" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                            ) : (
+                              <ImageIcon className="w-4 h-4 text-slate-600" />
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <div className="font-bold text-slate-100 max-w-[180px] truncate">{asset.title}</div>
                           <div className="font-mono text-[10px] text-blue-400">/{asset.slug}</div>
+                          <div className="flex gap-1 mt-0.5 flex-wrap">
+                            {asset.youtube_video_id && <span className="text-[9px] text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">YT</span>}
+                            {asset.gallery_images?.length && <span className="text-[9px] text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">{asset.gallery_images.length} imgs</span>}
+                            {asset.audio_url && <span className="text-[9px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Audio</span>}
+                          </div>
                         </td>
                         <td className="p-3 font-bold text-blue-400">
                           {asset.download_count.toLocaleString()}
@@ -507,7 +739,14 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
                         </td>
                         <td className="p-3">
                           <div className="flex items-center justify-end gap-1.5">
-                            {/* Toggle status */}
+                            <a
+                              href={`/assets/${asset.slug}`}
+                              target="_blank"
+                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 transition-colors"
+                              title="Preview Live"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
                             <button
                               onClick={() => handleToggleStatus(asset.slug, asset.status)}
                               className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors"
@@ -517,8 +756,6 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
                                 ? <Eye className="w-4 h-4 text-emerald-400" />
                                 : <EyeOff className="w-4 h-4 text-red-400" />}
                             </button>
-
-                            {/* Edit */}
                             <button
                               onClick={() => handleOpenEdit(asset)}
                               className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-400 transition-colors"
@@ -526,8 +763,6 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
-
-                            {/* Analytics */}
                             <button
                               onClick={() => handleViewAnalytics(asset.slug)}
                               className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-400 transition-colors"
@@ -535,8 +770,6 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
                             >
                               <BarChart2 className="w-4 h-4" />
                             </button>
-
-                            {/* Delete */}
                             <button
                               onClick={() => { setDeletingSlug(asset.slug); setDeleteConfirmSlug(''); }}
                               className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-900/50 text-red-400 transition-colors"
@@ -550,7 +783,7 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
                     ))}
                     {assets.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="p-8 text-center text-slate-500 text-xs">
+                        <td colSpan={5} className="p-8 text-center text-slate-500 text-xs">
                           No assets yet. Publish one using the form on the left.
                         </td>
                       </tr>
@@ -618,58 +851,165 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
         </div>
       </div>
 
-      {/* Edit Asset Modal */}
+      {/* ═══════════════ FULL EDIT MODAL ═══════════════ */}
       {editingAsset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="glass-card-cyber max-w-md w-full p-6 rounded-3xl space-y-5 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="glass-card-cyber w-full max-w-2xl p-6 rounded-3xl space-y-5 relative my-8">
             <button
               onClick={() => setEditingAsset(null)}
               className="absolute top-4 right-4 text-slate-400 hover:text-white"
             >
               <X className="w-5 h-5" />
             </button>
-            <div className="flex items-center gap-2 text-blue-400">
+
+            <div className="flex items-center gap-2 text-blue-400 border-b border-slate-800 pb-3">
               <Pencil className="w-4 h-4" />
               <h3 className="text-lg font-bold text-slate-100">Edit Asset</h3>
+              <span className="font-mono text-[10px] text-blue-400 ml-1">/{editingAsset.slug}</span>
             </div>
-            <div className="font-mono text-[10px] text-blue-400 -mt-2">/{editingAsset.slug}</div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Title</label>
-                <input
-                  type="text"
-                  value={editTitle}
-                  onChange={e => setEditTitle(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Title */}
+              <div className="sm:col-span-2">
+                <label className={labelCls}>Title</label>
+                <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} className={inputCls} />
               </div>
 
+              {/* Category */}
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Direct Download URL</label>
-                <input
-                  type="url"
-                  value={editDirectUrl}
-                  onChange={e => setEditDirectUrl(e.target.value)}
-                  placeholder="https://example.com/file.zip"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
-                />
+                <label className={labelCls}>Category</label>
+                <select value={editCategory} onChange={e => setEditCategory(e.target.value)} className={inputCls}>
+                  <option value="Game Optimizer">Game Optimizer</option>
+                  <option value="Network Utility">Network Utility</option>
+                  <option value="Latency Patch">Latency Patch</option>
+                  <option value="Windows Tweak">Windows Tweak</option>
+                </select>
               </div>
 
+              {/* Status */}
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Status</label>
-                <select
-                  value={editStatus}
-                  onChange={e => setEditStatus(e.target.value as 'active' | 'hidden')}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
-                >
+                <label className={labelCls}>Visibility Status</label>
+                <select value={editStatus} onChange={e => setEditStatus(e.target.value as 'active' | 'hidden')} className={inputCls}>
                   <option value="active">Active (visible on store)</option>
                   <option value="hidden">Hidden (invisible to users)</option>
                 </select>
               </div>
+
+              {/* Direct Download URL */}
+              <div className="sm:col-span-2">
+                <label className={labelCls}>Direct Download URL</label>
+                <input type="url" value={editDirectUrl} onChange={e => setEditDirectUrl(e.target.value)} placeholder="https://example.com/file.zip" className={inputCls} />
+              </div>
+
+              {/* Thumbnail */}
+              <div className="sm:col-span-2">
+                <label className={labelCls}>Thumbnail Image</label>
+                <div className="flex gap-3 items-start">
+                  <div className="flex-1 space-y-1.5">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={e => setEditThumbnailFile(e.target.files?.[0] || null)}
+                      className={fileCls}
+                    />
+                    <input
+                      type="url"
+                      placeholder="Or paste image URL"
+                      value={editImageUrl}
+                      onChange={e => setEditImageUrl(e.target.value)}
+                      className={inputCls}
+                    />
+                  </div>
+                  <div className="w-20 h-16 rounded-xl border border-slate-700 overflow-hidden bg-slate-900 flex items-center justify-center shrink-0">
+                    {editThumbnailFile ? (
+                      <img src={URL.createObjectURL(editThumbnailFile)} alt="" className="w-full h-full object-cover" />
+                    ) : editImageUrl ? (
+                      <img src={editImageUrl} alt="" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    ) : (
+                      <ImageIcon className="w-5 h-5 text-slate-600" />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Gallery */}
+              <div className="sm:col-span-2">
+                <GalleryRow
+                  items={editGalleryItems}
+                  setItems={setEditGalleryItems}
+                  files={editGalleryFiles}
+                  setFiles={setEditGalleryFiles}
+                  slugBase={editSlug}
+                />
+              </div>
+
+              {/* YouTube */}
+              <div className="sm:col-span-2">
+                <label className={labelCls}>YouTube Video (URL or ID)</label>
+                <input
+                  type="text"
+                  placeholder="https://youtu.be/... or video ID"
+                  value={editYoutubeId}
+                  onChange={e => setEditYoutubeId(e.target.value)}
+                  className={inputCls}
+                />
+                {editYoutubeId && (
+                  <div className="mt-2 rounded-xl overflow-hidden border border-slate-700 aspect-video">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${extractYoutubeId(editYoutubeId)}`}
+                      className="w-full h-full"
+                      allow="autoplay; encrypted-media"
+                      allowFullScreen
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Video URL */}
+              <div>
+                <label className={labelCls}>Video Demo URL (MP4)</label>
+                <input type="url" placeholder="https://cdn.example.com/demo.mp4" value={editVideoUrl} onChange={e => setEditVideoUrl(e.target.value)} className={inputCls} />
+              </div>
+
+              {/* Audio */}
+              <div>
+                <label className={labelCls}>Audio Sound Preview</label>
+                <input
+                  type="file"
+                  accept="audio/*"
+                  onChange={e => setEditAudioFile(e.target.files?.[0] || null)}
+                  className={fileCls}
+                />
+                <input
+                  type="url"
+                  placeholder="Or paste MP3 URL"
+                  value={editAudioUrl}
+                  onChange={e => setEditAudioUrl(e.target.value)}
+                  className={`${inputCls} mt-1.5`}
+                />
+                {(editAudioFile || editAudioUrl) && (
+                  <audio
+                    controls
+                    src={editAudioFile ? URL.createObjectURL(editAudioFile) : editAudioUrl}
+                    className="w-full mt-2 rounded-xl"
+                  />
+                )}
+              </div>
+
+              {/* Instructions */}
+              <div className="sm:col-span-2">
+                <label className={labelCls}>Installation Instructions</label>
+                <textarea
+                  rows={4}
+                  value={editInstructions}
+                  onChange={e => setEditInstructions(e.target.value)}
+                  placeholder={"Step 1: Download & extract ZIP...\nStep 2: Run as Administrator..."}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500 resize-none"
+                />
+              </div>
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-3 pt-2 border-t border-slate-800">
               <button
                 onClick={() => setEditingAsset(null)}
                 className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold uppercase tracking-wider transition-colors"
@@ -679,10 +1019,10 @@ export default function AdminDashboardClient({ initialAssets }: AdminDashboardCl
               <button
                 onClick={handleSaveEdit}
                 disabled={editSaving}
-                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-600 text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <Save className="w-3.5 h-3.5" />
-                {editSaving ? 'Saving...' : 'Save Changes'}
+                {editSaving ? 'Saving & Uploading...' : 'Save All Changes'}
               </button>
             </div>
           </div>

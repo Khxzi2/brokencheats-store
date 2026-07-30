@@ -23,6 +23,7 @@ export default function AssetProductCardPage({ asset, relatedAssets = [] }: Asse
   const [downloadCount, setDownloadCount] = useState<number>(asset.download_count);
   const [downloading, setDownloading] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
+  const [missionCompleted, setMissionCompleted] = useState<boolean>(false);
 
   // Gallery Active Image State
   const allImages = [
@@ -65,6 +66,12 @@ export default function AssetProductCardPage({ asset, relatedAssets = [] }: Asse
   }, [timer]);
 
   const handleDownload = async () => {
+    if (!missionCompleted) {
+      window.open('https://www.effectivecpmnetwork.com/wzr03mwh?key=537b2ed7b938a948c769d7a6d4182468', '_blank');
+      setMissionCompleted(true);
+      return;
+    }
+
     try {
       setDownloading(true);
       const res = await fetch(`/api/assets/${asset.slug}`, {
@@ -113,11 +120,11 @@ export default function AssetProductCardPage({ asset, relatedAssets = [] }: Asse
       <div className="absolute top-40 right-10 w-[400px] h-[400px] bg-cyan-600/10 blur-[140px] rounded-full pointer-events-none" />
 
       <div className="max-w-6xl mx-auto relative z-10 space-y-8">
-        
+
         {/* Navigation Breadcrumb */}
         <div className="flex items-center justify-between">
-          <Link 
-            href="/assets" 
+          <Link
+            href="/assets"
             className="inline-flex items-center gap-2 text-xs font-bold tracking-wider text-slate-400 hover:text-blue-400 transition-colors uppercase"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -143,9 +150,9 @@ export default function AssetProductCardPage({ asset, relatedAssets = [] }: Asse
           {allImages.length > 0 && (
             <div className="space-y-3">
               <div className="w-full h-64 md:h-96 rounded-2xl overflow-hidden relative border border-slate-800 bg-slate-950">
-                <img 
-                  src={allImages[activeImageIndex]} 
-                  alt={`${asset.title} Preview ${activeImageIndex + 1}`} 
+                <img
+                  src={allImages[activeImageIndex]}
+                  alt={`${asset.title} Preview ${activeImageIndex + 1}`}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#050507] via-transparent to-transparent opacity-40" />
@@ -161,11 +168,10 @@ export default function AssetProductCardPage({ asset, relatedAssets = [] }: Asse
                     <button
                       key={idx}
                       onClick={() => setActiveImageIndex(idx)}
-                      className={`w-20 h-14 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
-                        activeImageIndex === idx
+                      className={`w-20 h-14 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${activeImageIndex === idx
                           ? 'border-blue-500 scale-105 shadow-lg shadow-blue-500/20'
                           : 'border-slate-800 opacity-60 hover:opacity-100'
-                      }`}
+                        }`}
                     >
                       <img src={imgUrl} alt="Thumbnail" className="w-full h-full object-cover" />
                     </button>
@@ -229,7 +235,7 @@ export default function AssetProductCardPage({ asset, relatedAssets = [] }: Asse
 
           {/* LEFT 2 COLS: Specs, Guide & Instructions */}
           <div className="lg:col-span-2 space-y-8">
-            
+
             {/* TECHNICAL SPECIFICATIONS TABLE CARD */}
             <div className="glass-card-brokencheats p-6 md:p-8 rounded-3xl space-y-6">
               <div className="flex items-center gap-3 border-b border-slate-800/80 pb-4">
@@ -378,7 +384,7 @@ export default function AssetProductCardPage({ asset, relatedAssets = [] }: Asse
 
           {/* RIGHT 1 COL: Download Action Card & Ads */}
           <div className="space-y-6">
-            
+
             {/* DOWNLOAD TRIGGER CARD */}
             <div className="glass-card-brokencheats p-6 rounded-3xl space-y-6 border border-blue-500/30 relative">
               <div className="text-center space-y-2">
@@ -411,8 +417,19 @@ export default function AssetProductCardPage({ asset, relatedAssets = [] }: Asse
                     className="w-full py-4 px-6 rounded-2xl text-sm font-black tracking-wider uppercase bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-xl shadow-blue-600/30 flex items-center justify-center gap-3 transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
                   >
                     <Download className="w-5 h-5" />
-                    <span>{downloading ? 'Preparing File...' : 'DOWNLOAD NOW (FREE)'}</span>
+                    <span>{downloading ? 'Preparing File...' : missionCompleted ? 'DOWNLOAD NOW (FREE)' : 'UNLOCK DOWNLOAD (REQUIRED)'}</span>
                   </button>
+                )}
+
+                {!missionCompleted && isUnlocked && (
+                  <a
+                    href="https://omg10.com/4/11455896"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full py-3 px-4 rounded-xl text-xs font-bold text-white hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors text-center shadow-lg"
+                  >
+                    Extra Mission (Optional)
+                  </a>
                 )}
 
                 {isUnlocked && asset.direct_download_url && (

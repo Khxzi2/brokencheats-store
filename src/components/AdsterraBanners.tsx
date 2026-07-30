@@ -26,7 +26,7 @@ export default function AdsterraBanners({ format, className = '' }: AdsterraBann
       script.async = true;
       script.dataset.cfasync = 'false';
       script.src = 'https://pl30597087.effectivecpmnetwork.com/ab0ef1399f51a6b6e9b4e1ff48f5a874/invoke.js';
-      
+
       const div = document.createElement('div');
       div.id = 'container-ab0ef1399f51a6b6e9b4e1ff48f5a874';
 
@@ -91,7 +91,7 @@ export default function AdsterraBanners({ format, className = '' }: AdsterraBann
         </div>
 
         <a
-          href="https://pl30597086.effectivecpmnetwork.com/38/5d/82/385d8299b6d84847a8cea3a4bdc0d71f.js"
+          href="https://omg10.com/4/11455896"
           target="_blank"
           rel="noopener noreferrer"
           className="px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-blue-600 to-cyan-500 text-white hover:opacity-90 transition-all shrink-0 flex items-center gap-1.5 shadow-lg shadow-blue-600/25"

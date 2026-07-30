@@ -26,8 +26,40 @@ const INITIAL_SEED_ASSETS: Asset[] = [
   }
 ];
 
-// In-memory fallback store for robust zero-config functionality
-let localAssetsStore: Asset[] = [...INITIAL_SEED_ASSETS];
+import fs from 'fs';
+import path from 'path';
+
+// File path for persistent local fallback
+const DATA_FILE = path.join(process.cwd(), 'data', 'assets.json');
+
+// Ensure data directory exists
+if (!fs.existsSync(path.join(process.cwd(), 'data'))) {
+  fs.mkdirSync(path.join(process.cwd(), 'data'), { recursive: true });
+}
+
+// In-memory cache
+let localAssetsStore: Asset[] = [];
+
+// Load from file or initialize
+try {
+  if (fs.existsSync(DATA_FILE)) {
+    localAssetsStore = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
+  } else {
+    localAssetsStore = [...INITIAL_SEED_ASSETS];
+    fs.writeFileSync(DATA_FILE, JSON.stringify(localAssetsStore, null, 2));
+  }
+} catch (e) {
+  localAssetsStore = [...INITIAL_SEED_ASSETS];
+}
+
+// Helper to save store
+function saveLocalStore() {
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(localAssetsStore, null, 2));
+  } catch (e) {
+    console.error('Failed to save local assets:', e);
+  }
+}
 
 export async function getAllAssets(includeHidden = false): Promise<Asset[]> {
   try {
@@ -39,13 +71,26 @@ export async function getAllAssets(includeHidden = false): Promise<Asset[]> {
     if (error || !data || data.length === 0) {
       return includeHidden ? localAssetsStore : localAssetsStore.filter(a => a.status === 'active');
     }
-    return data as Asset[];
+    
+    // Merge DB data with local data to preserve extra fields
+    const merged = data.map(dbAsset => {
+      const local = localAssetsStore.find(a => a.slug === dbAsset.slug);
+      return local ? { ...dbAsset, ...local } : dbAsset;
+    }) as Asset[];
+    
+    // Also include local assets not in DB
+    const dbSlugs = new Set(merged.map(a => a.slug));
+    const localOnly = localAssetsStore.filter(a => !dbSlugs.has(a.slug));
+    
+    const finalAssets = [...merged, ...localOnly];
+    return includeHidden ? finalAssets : finalAssets.filter(a => a.status === 'active');
   } catch {
     return includeHidden ? localAssetsStore : localAssetsStore.filter(a => a.status === 'active');
   }
 }
 
 export async function getAssetBySlug(slug: string): Promise<Asset | null> {
+  const localMatch = localAssetsStore.find(a => a.slug === slug);
   try {
     const { data, error } = await supabase
       .from('assets')
@@ -54,13 +99,11 @@ export async function getAssetBySlug(slug: string): Promise<Asset | null> {
       .single();
 
     if (error || !data) {
-      const match = localAssetsStore.find(a => a.slug === slug);
-      return match || null;
+      return localMatch || null;
     }
-    return data as Asset;
+    return localMatch ? { ...data, ...localMatch } as Asset : data as Asset;
   } catch {
-    const match = localAssetsStore.find(a => a.slug === slug);
-    return match || null;
+    return localMatch || null;
   }
 }
 
@@ -85,9 +128,12 @@ export async function createAsset(input: AssetInput): Promise<Asset> {
         ...newAssetData
       };
       localAssetsStore.unshift(fallbackAsset);
+      saveLocalStore();
       return fallbackAsset;
     }
 
+    localAssetsStore.unshift(data as Asset);
+    saveLocalStore();
     return data as Asset;
   } catch {
     const fallbackAsset: Asset = {
@@ -109,6 +155,7 @@ export async function createAsset(input: AssetInput): Promise<Asset> {
       created_at: new Date().toISOString()
     };
     localAssetsStore.unshift(fallbackAsset);
+    saveLocalStore();
     return fallbackAsset;
   }
 }
@@ -123,7 +170,10 @@ export async function incrementDownloadCount(slug: string): Promise<number> {
         const newCount = (current.download_count || 0) + 1;
         await supabase.from('assets').update({ download_count: newCount }).eq('slug', slug);
         const local = localAssetsStore.find(a => a.slug === slug);
-        if (local) local.download_count = newCount;
+        if (local) {
+          local.download_count = newCount;
+          saveLocalStore();
+        }
         return newCount;
       }
     }
@@ -131,6 +181,7 @@ export async function incrementDownloadCount(slug: string): Promise<number> {
     const local = localAssetsStore.find(a => a.slug === slug);
     if (local) {
       local.download_count += 1;
+      saveLocalStore();
       return local.download_count;
     }
 
@@ -140,6 +191,7 @@ export async function incrementDownloadCount(slug: string): Promise<number> {
     const local = localAssetsStore.find(a => a.slug === slug);
     if (local) {
       local.download_count += 1;
+      saveLocalStore();
       return local.download_count;
     }
     return 1;
@@ -152,14 +204,31 @@ export async function toggleAssetStatus(slug: string, newStatus: 'active' | 'hid
     const local = localAssetsStore.find(a => a.slug === slug);
     if (local) {
       local.status = newStatus;
+      saveLocalStore();
     }
     return !error;
   } catch {
     const local = localAssetsStore.find(a => a.slug === slug);
     if (local) {
       local.status = newStatus;
+      saveLocalStore();
       return true;
     }
     return false;
   }
+}
+
+export async function updateAssetBySlug(slug: string, updates: Partial<Asset>): Promise<Asset | null> {
+  const idx = localAssetsStore.findIndex(a => a.slug === slug);
+  if (idx >= 0) {
+    localAssetsStore[idx] = { ...localAssetsStore[idx], ...updates };
+    saveLocalStore();
+    return localAssetsStore[idx];
+  }
+  return null;
+}
+
+export async function deleteAssetBySlug(slug: string): Promise<void> {
+  localAssetsStore = localAssetsStore.filter(a => a.slug !== slug);
+  saveLocalStore();
 }

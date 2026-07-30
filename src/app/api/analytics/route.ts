@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { recordEventLocal } from '@/lib/analytics';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,23 +21,28 @@ export async function POST(request: Request) {
                     request.headers.get('cf-ipcountry') || 
                     'Unknown';
 
-    // Insert into Supabase
-    // If the database connection fails or table doesn't exist, this will gracefully catch
-    const { error } = await supabase
-      .from('asset_analytics')
-      .insert([
-        {
-          asset_slug,
-          event_type,
-          country,
-        }
-      ]);
-
-    if (error) {
-      console.error('Analytics DB Error:', error.message);
-      // We don't necessarily want to fail the user request just because analytics failed
-      return NextResponse.json({ success: false, error: 'Failed to record analytics', details: error.message }, { status: 200 });
+    let insertError = null;
+    try {
+      const { error } = await supabase
+        .from('asset_analytics')
+        .insert([
+          {
+            asset_slug,
+            event_type,
+            country,
+          }
+        ]);
+      insertError = error;
+    } catch (e: any) {
+      insertError = e;
     }
+
+    if (insertError) {
+      console.warn('Analytics DB Error (falling back to local):', insertError.message || insertError);
+    }
+    
+    // Always write to local store as a reliable fallback / dual-write
+    recordEventLocal(asset_slug, event_type as 'view' | 'download', country);
 
     return NextResponse.json({ success: true });
   } catch (err: any) {

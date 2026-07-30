@@ -52,14 +52,22 @@ export async function POST(request: Request) {
       status: status || 'active',
     };
 
-    // Attempt full insert into Supabase
-    const { data, error } = await supabaseAdmin
-      .from('assets')
-      .insert([assetPayload])
-      .select()
-      .single();
+    let data = null;
+    let insertError = null;
+    
+    try {
+      const result = await supabaseAdmin
+        .from('assets')
+        .insert([assetPayload])
+        .select()
+        .single();
+      data = result.data;
+      insertError = result.error;
+    } catch (e: any) {
+      insertError = e;
+    }
 
-    if (!error && data) {
+    if (!insertError && data) {
       // Also sync to local fallback memory store
       await createAsset(assetPayload);
       return NextResponse.json({ success: true, asset: data }, { status: 201 });
@@ -67,27 +75,25 @@ export async function POST(request: Request) {
 
     // If Supabase schema lacks new columns (e.g. audio_url column missing in Supabase DB),
     // insert base fields into Supabase and save full payload to local memory store
-    if (error) {
-      console.warn('Supabase insert error (missing columns/schema), using resilient fallback:', error.message);
-      
-      try {
-        await supabaseAdmin.from('assets').insert([{
-          title: assetPayload.title,
-          category: assetPayload.category,
-          slug: assetPayload.slug,
-          direct_download_url: assetPayload.direct_download_url,
-          file_path: assetPayload.file_path,
-          download_count: 0,
-          status: assetPayload.status,
-        }]);
-      } catch (e) {
-        console.warn('Supabase base insert skipped:', e);
-      }
-
-      // Save full enriched asset to local memory store
-      const localAsset = await createAsset(assetPayload);
-      return NextResponse.json({ success: true, asset: localAsset }, { status: 201 });
+    console.warn('Supabase insert error (missing columns/schema), using resilient fallback:', insertError?.message || insertError);
+    
+    try {
+      await supabaseAdmin.from('assets').insert([{
+        title: assetPayload.title,
+        category: assetPayload.category,
+        slug: assetPayload.slug,
+        direct_download_url: assetPayload.direct_download_url,
+        file_path: assetPayload.file_path,
+        download_count: 0,
+        status: assetPayload.status,
+      }]);
+    } catch (e) {
+      console.warn('Supabase base insert skipped:', e);
     }
+
+    // Save full enriched asset to local memory store
+    const localAsset = await createAsset(assetPayload);
+    return NextResponse.json({ success: true, asset: localAsset }, { status: 201 });
 
     const created = await createAsset(assetPayload);
     return NextResponse.json({ success: true, asset: created }, { status: 201 });

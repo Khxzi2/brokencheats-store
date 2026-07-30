@@ -41,7 +41,11 @@ export async function POST(request: Request) {
         });
 
       if (!error && data?.path) {
-        return NextResponse.json({ success: true, filePath: data.path });
+        const { data: publicUrlData } = supabaseAdmin.storage
+          .from('assets_bucket')
+          .getPublicUrl(data.path);
+        
+        return NextResponse.json({ success: true, filePath: publicUrlData.publicUrl });
       }
     } catch (sbErr) {
       console.warn('Supabase storage upload error, falling back to local storage:', sbErr);

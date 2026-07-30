@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { updateAssetBySlug, deleteAssetBySlug } from '@/lib/assets';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,26 +27,30 @@ export async function PATCH(
     if (body.youtube_video_id !== undefined) allowedFields.youtube_video_id = body.youtube_video_id;
     if (body.instructions !== undefined) allowedFields.instructions = body.instructions;
 
-    const { data, error } = await supabaseAdmin
-      .from('assets')
-      .update(allowedFields)
-      .eq('slug', slug)
-      .select();
-
-    // Ignore missing rows error as they might only exist in local store
-    if (error && error.code !== 'PGRST116') {
-      console.error("Supabase update error:", error);
+    // Try Supabase update
+    let supabaseData: any = null;
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('assets')
+        .update(allowedFields)
+        .eq('slug', slug)
+        .select();
+      if (!error) supabaseData = data;
+    } catch (e) {
+      console.warn('Supabase PATCH failed:', e);
     }
-    
-    // We update localAssetsStore in memory if possible? 
-    // Well, next server handles it per request. So if it fails here, we still return success.
-    const asset = data && data.length > 0 ? data[0] : { slug, ...allowedFields };
+
+    // Always update local store
+    const updated = await updateAssetBySlug(slug, allowedFields);
+
+    const asset = (supabaseData && supabaseData.length > 0) ? supabaseData[0] : (updated || { slug, ...allowedFields });
 
     return NextResponse.json({ success: true, asset });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
+
 
 // DELETE /api/admin/assets/[slug] — permanently delete asset + its storage file
 export async function DELETE(
@@ -80,12 +85,18 @@ export async function DELETE(
     }
 
     // Delete the database record
-    const { error: deleteErr } = await supabaseAdmin
-      .from('assets')
-      .delete()
-      .eq('slug', slug);
+    try {
+      const { error: deleteErr } = await supabaseAdmin
+        .from('assets')
+        .delete()
+        .eq('slug', slug);
+      if (deleteErr) console.warn('Supabase delete warning:', deleteErr.message);
+    } catch (e) {
+      console.warn('Supabase delete failed:', e);
+    }
 
-    if (deleteErr) throw deleteErr;
+    // Always remove from local store
+    await deleteAssetBySlug(slug);
 
     return NextResponse.json({ success: true });
   } catch (err: any) {

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { getEventsLocal } from '@/lib/analytics';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,22 +8,23 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
   try {
     const { slug } = await params;
 
-    // We can run two queries or one grouped query.
-    // Easiest is to just fetch all events for this slug and group in memory, or use Supabase counts.
-    // For simplicity, we fetch all for this slug. If scale is large, we should use an RPC function or group by.
-    const { data, error } = await supabase
-      .from('asset_analytics')
-      .select('event_type, country')
-      .eq('asset_slug', slug);
+    // Always include local analytics
+    const localEvents = getEventsLocal(slug);
 
-    if (error) {
-      console.error('Analytics Fetch Error:', error.message);
-      // Return empty data if DB connection fails
-      return NextResponse.json({
-        success: true,
-        stats: { views: 0, downloads: 0, countries: {} }
-      });
+    // Try Supabase
+    let supabaseEvents: { event_type: string; country: string }[] = [];
+    try {
+      const { data, error } = await supabase
+        .from('asset_analytics')
+        .select('event_type, country')
+        .eq('asset_slug', slug);
+      if (!error && data) supabaseEvents = data;
+    } catch (e) {
+      console.warn('Supabase analytics fetch failed, using local only');
     }
+
+    // Merge: deduplicate by using local as ground truth (local is always written)
+    const allEvents = [...supabaseEvents, ...localEvents];
 
     const stats = {
       views: 0,
@@ -30,15 +32,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
       countries: {} as Record<string, number>
     };
 
-    if (data) {
-      for (const row of data) {
-        if (row.event_type === 'view') stats.views++;
-        if (row.event_type === 'download') stats.downloads++;
+    for (const row of allEvents) {
+      if (row.event_type === 'view') stats.views++;
+      if (row.event_type === 'download') stats.downloads++;
 
-        const country = row.country || 'Unknown';
-        if (row.event_type === 'view') {
-          stats.countries[country] = (stats.countries[country] || 0) + 1;
-        }
+      const country = row.country || 'Unknown';
+      if (row.event_type === 'view') {
+        stats.countries[country] = (stats.countries[country] || 0) + 1;
       }
     }
 
