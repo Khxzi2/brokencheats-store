@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://free.brokencheats.store'),
   manifest: '/manifest.json',
   title: {
-    default: 'BrokenCheats Free Store — Game Optimizers, Latency Tweaks & FPS Boosters',
+    default: 'BrokenCheats Free Store',
     template: '%s | BrokenCheats Free Store',
   },
   description: 'Download 100% free verified game optimization configs, ultra-low latency registry tweaks, FPS boosters, and network patches. Trusted by the BrokenCheats community.',
@@ -159,7 +159,7 @@ export default function RootLayout({
           </main>
           <AdBannerWrapper />
         </div>
-        
+
         {/* Global Footer */}
         <footer className="border-t border-blue-500/20 bg-[#0b0c10]/90 backdrop-blur-xl py-8 px-4 text-center">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">

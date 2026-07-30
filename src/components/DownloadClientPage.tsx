@@ -57,14 +57,14 @@ export default function DownloadClientPage({ asset }: DownloadClientPageProps) {
         body: JSON.stringify({ action: 'increment_download' }),
       }).then(r => r.json()).then(d => {
         if (d.success && d.download_count) setDownloadCount(d.download_count);
-      }).catch(() => {});
+      }).catch(() => { });
 
       // 2. Record download event in analytics store
       fetch(`/api/analytics`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ asset_slug: asset.slug, event_type: 'download' }),
-      }).catch(() => {});
+      }).catch(() => { });
 
     } catch (err) {
       console.error('Error recording download metric:', err);
