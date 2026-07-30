@@ -49,22 +49,23 @@ export default function DownloadClientPage({ asset }: DownloadClientPageProps) {
 
     try {
       setDownloadTriggered(true);
-      // Trigger download count increment API call asynchronously
-      const res = await fetch(`/api/assets/${asset.slug}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ asset_slug: asset.slug, event_type: 'download' }),
-      });
-      // Also hit the old download counter endpoint just in case it's used elsewhere
-      await fetch(`/api/assets/${asset.slug}`, {
+
+      // 1. Increment download count in local/DB store
+      fetch(`/api/assets/${asset.slug}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'increment_download' }),
-      });
-      const data = await res.json();
-      if (data.success && data.download_count) {
-        setDownloadCount(data.download_count);
-      }
+      }).then(r => r.json()).then(d => {
+        if (d.success && d.download_count) setDownloadCount(d.download_count);
+      }).catch(() => {});
+
+      // 2. Record download event in analytics store
+      fetch(`/api/analytics`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ asset_slug: asset.slug, event_type: 'download' }),
+      }).catch(() => {});
+
     } catch (err) {
       console.error('Error recording download metric:', err);
     } finally {

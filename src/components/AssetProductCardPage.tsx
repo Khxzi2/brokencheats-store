@@ -74,15 +74,23 @@ export default function AssetProductCardPage({ asset, relatedAssets = [] }: Asse
 
     try {
       setDownloading(true);
-      const res = await fetch(`/api/assets/${asset.slug}`, {
+
+      // 1. Increment download count in local/DB store
+      fetch(`/api/assets/${asset.slug}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'increment_download' }),
+      }).then(r => r.json()).then(d => {
+        if (d.success && d.download_count) setDownloadCount(d.download_count);
+      }).catch(() => {});
+
+      // 2. Record download event in analytics store
+      fetch(`/api/analytics`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ asset_slug: asset.slug, event_type: 'download' }),
-      });
-      const data = await res.json();
-      if (data.success && data.download_count) {
-        setDownloadCount(data.download_count);
-      }
+      }).catch(() => {});
+
     } catch (err) {
       console.error('Error recording download metric:', err);
     } finally {

@@ -11,13 +11,34 @@ export async function generateMetadata(
 
   if (!asset) {
     return {
-      title: 'Asset Not Found | BrokenCheats Store',
+      title: 'Asset Not Found | BrokenCheats Free Store',
+      robots: { index: false },
     };
   }
 
+  const assetUrl = `https://free.brokencheats.store/assets/${asset.slug}`;
+  const imageUrl = asset.image_url || '/og-image.png';
+  const desc = `Download free ${asset.title} — ${asset.category} verified by BrokenCheats. ${asset.download_count.toLocaleString()} downloads. Win 10/11 safe, zero delay.`;
+
   return {
-    title: `${asset.title} - Free Download & Product Card | BrokenCheats Store`,
-    description: `Download verified free ${asset.category} (${asset.title}) on free.brokencheats.store. High-speed mirror download links and latency optimization specs.`,
+    title: `${asset.title} — Free Download | BrokenCheats`,
+    description: desc,
+    keywords: [asset.title, asset.category, 'free download', 'game optimizer', 'brokencheats', asset.slug],
+    alternates: { canonical: assetUrl },
+    openGraph: {
+      type: 'article',
+      url: assetUrl,
+      title: `${asset.title} — Free Download | BrokenCheats`,
+      description: desc,
+      siteName: 'BrokenCheats Free Store',
+      images: [{ url: imageUrl, width: 1200, height: 630, alt: asset.title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${asset.title} — Free Download`,
+      description: desc,
+      images: [imageUrl],
+    },
   };
 }
 
