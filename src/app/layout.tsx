@@ -64,19 +64,17 @@ export const metadata: Metadata = {
     creator: '@brokencheats',
     title: 'BrokenCheats Free Store — Game Optimizers & FPS Boost Tools',
     description: 'Free verified game configs, ultra-low latency tweaks, and FPS boosters. Download now.',
-    images: ['/og-image.png'],
+    images: ['/og-image.jpg'],
   },
   // Icons / PWA
   icons: {
     icon: [
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/icon-192.jpg', sizes: '192x192', type: 'image/jpeg' },
+      { url: '/icon-512.jpg', sizes: '512x512', type: 'image/jpeg' },
     ],
-    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180' }],
+    apple: [{ url: '/apple-touch-icon.jpg', sizes: '180x180' }],
     shortcut: '/favicon.ico',
   },
-  // PWA Manifest
-  manifest: '/manifest.json',
   // Verification
   verification: {
     google: 'google-site-verification-placeholder',
