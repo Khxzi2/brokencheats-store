@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #050507;
+  --color-surface: #0e1017;
+  --color-surface-hover: #161924;
+  --color-primary: #2563eb;
+  --color-primary-light: #3b82f6;
+  --color-primary-dark: #1d4ed8;
+  --color-accent-cyan: #06b6d4;
+  --color-text-main: #f8fafc;
+  --color-text-muted: #94a3b8;
+  
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+}
+
+:root {
+  --background: #050507;
+  --foreground: #f8fafc;
+}
+
+body {
+  background-color: #050507;
+  color: #f8fafc;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+.glass-header {
+  background: rgba(5, 5, 7, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card-brokencheats, .glass-card-cyber {
+  background: linear-gradient(180deg, rgba(14, 16, 23, 0.9) 0%, rgba(8, 9, 13, 0.95) 100%);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card-brokencheats:hover, .glass-card-cyber:hover {
+  border-color: rgba(37, 99, 235, 0.5);
+  box-shadow: 0 0 35px -5px rgba(37, 99, 235, 0.25), 0 15px 40px -10px rgba(0, 0, 0, 0.9);
+  transform: translateY(-4px);
+}
+
+.glass-card-ad {
+  background: linear-gradient(180deg, rgba(14, 16, 23, 0.7) 0%, rgba(5, 5, 7, 0.8) 100%);
+  backdrop-filter: blur(12px);
+  border: 1px dashed rgba(37, 99, 235, 0.35);
+}
+
+.text-hero-giant {
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+}
+
+.text-gradient-blue {
+  background: linear-gradient(135deg, #60a5fa 0%, #2563eb 50%, #1d4ed8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-white {
+  background: linear-gradient(180deg, #ffffff 0%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glow-blue {
+  box-shadow: 0 0 30px rgba(37, 99, 235, 0.35);
+}
+
+/* Infinite Ticker Marquee Keyframes */
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: 200%;
+  animation: marquee 25s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Custom Minimal Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #050507;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e2433;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2563eb;
+}

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="monetag" content="d9c8d0f52cbcec36f3a1278fafd65345">
+  <script src="https://quge5.com/88/tag.min.js" data-zone="265211" async data-cfasync="false"></script>
+  <title>Download Asset | BrokenCheats Store</title>
+  <style>
+    :root {
+      --bg: #0b0c10;
+      --surface: #12141c;
+      --primary: #ef4444;
+      --accent: #a855f7;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    header { border-bottom: 1px solid rgba(168,85,247,0.2); background: rgba(11,12,16,0.8); backdrop-filter: blur(12px); padding: 1rem 2rem; display: flex; justify-between; align-items: center; }
+    .brand { font-weight: 900; font-size: 1.25rem; tracking: 0.05em; text-decoration: none; color: #fff; }
+    .brand span { color: var(--primary); }
+    main { max-width: 700px; margin: 4rem auto; padding: 0 1.5rem; text-align: center; }
+    .download-box { background: linear-gradient(135deg, rgba(18,20,28,0.95) 0%, rgba(26,12,34,0.8) 100%); border: 1px solid rgba(168,85,247,0.3); border-radius: 1.5rem; padding: 2.5rem; }
+    h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 0.5rem; color: #fff; }
+    p { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .timer-circle { font-size: 2rem; font-weight: 900; color: var(--accent); margin: 1.5rem 0; }
+    .btn { display: inline-block; background: linear-gradient(135deg, #ef4444 0%, #a855f7 100%); color: #fff; text-decoration: none; padding: 0.8rem 2rem; border-radius: 0.85rem; font-weight: 800; font-size: 1rem; cursor: pointer; border: none; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  </style>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').then(reg => console.log('Monetag Verification Worker registered')).catch(console.error);
+    }
+  </script>
+</head>
+<body>
+  <header>
+    <a href="./index.html" class="brand">BROKEN<span>CHEATS</span></a>
+  </header>
+  <main>
+    <div class="download-box">
+      <h2>FF Ultimate FPS Boost Config v2.4</h2>
+      <p>Preparing your secure optimization payload. Verified VirusTotal clean.</p>
+      
+      <div id="timer" class="timer-circle">10s</div>
+      <button id="downloadBtn" class="btn" disabled>Preparing Download...</button>
+    </div>
+  </main>
+
+  <script>
+    let timeLeft = 10;
+    const timerElem = document.getElementById('timer');
+    const btnElem = document.getElementById('downloadBtn');
+
+    const countdown = setInterval(() => {
+      timeLeft--;
+      if (timeLeft > 0) {
+        timerElem.innerText = timeLeft + 's';
+      } else {
+        clearInterval(countdown);
+        timerElem.innerText = '✓ Ready!';
+        btnElem.removeAttribute('disabled');
+        btnElem.innerText = 'Download File Now';
+        btnElem.onclick = () => {
+          window.open('https://mediafire.com', '_blank');
+        };
+      }
+    }, 1000);
+  </script>
+</body>
+</html>
