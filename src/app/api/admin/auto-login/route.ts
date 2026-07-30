@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   // Generate a valid admin session cookie
   const username = 'brkn'; // We assume auto-login is the master admin
-  const res = NextResponse.redirect(new URL('/admin', request.url));
+  const res = NextResponse.redirect(new URL('/admin', 'https://free.brokencheats.store'));
   
   res.cookies.set('admin_session', Buffer.from(`${username}:${Date.now()}`).toString('base64'), {
     httpOnly: true,
