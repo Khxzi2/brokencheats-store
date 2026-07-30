@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Generate a valid admin session cookie
-  const username = 'admin'; // We assume auto-login is the master admin
+  const username = 'brkn'; // We assume auto-login is the master admin
   const res = NextResponse.redirect(new URL('/admin', request.url));
   
   res.cookies.set('admin_session', Buffer.from(`${username}:${Date.now()}`).toString('base64'), {

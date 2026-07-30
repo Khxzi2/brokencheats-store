@@ -18,8 +18,8 @@ export async function POST(request: Request) {
     let isValid = false;
 
     // Check hardcoded fallback first
-    const adminPass = process.env.ADMIN_PASSWORD || 'brkn#0000';
-    if (username === 'admin' && password === adminPass) {
+    const adminPass = process.env.ADMIN_PASSWORD;
+    if ((username === 'brkn' || username === 'admin') && password === adminPass) {
       isValid = true;
     } else {
       try {
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
           .eq('password', password)
           .single();
         if (!error && admin) isValid = true;
-      } catch {}
+      } catch { }
     }
 
     if (!isValid) {
