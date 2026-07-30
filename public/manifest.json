@@ -35,14 +35,14 @@
       "short_name": "Panels",
       "description": "Browse all available game optimization assets",
       "url": "/assets",
-      "icons": [{ "src": "/icon-192.jpg", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon-192.jpg", "sizes": "192x192", "type": "image/jpeg" }]
     },
     {
       "name": "Admin Panel",
       "short_name": "Admin",
       "description": "Staff asset management portal",
       "url": "/admin",
-      "icons": [{ "src": "/icon-192.jpg", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon-192.jpg", "sizes": "192x192", "type": "image/jpeg" }]
     }
   ],
   "screenshots": [

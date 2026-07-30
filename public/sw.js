@@ -3,7 +3,12 @@ self.options = {
     "zoneId": 11456131
 }
 self.lary = ""
-importScripts('https://3nbf4.com/act/files/service-worker.min.js?r=sw')
+
+try {
+  importScripts('https://3nbf4.com/act/files/service-worker.min.js?r=sw')
+} catch (error) {
+  console.warn('Could not load external SW script:', error)
+}
 
 // PWA Logic to satisfy PWABuilder
 self.addEventListener('install', (event) => {
