@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   try {
     const res = await fetch(shrinkMeUrl);
     const shortUrl = await res.text();
-    
+
     // Validate we got a valid URL back
     if (shortUrl && shortUrl.startsWith('http')) {
       return NextResponse.redirect(shortUrl);

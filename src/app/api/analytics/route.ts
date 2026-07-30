@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { recordEventLocal } from '@/lib/analytics';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +27,7 @@ export async function POST(request: Request) {
 
     let insertError = null;
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('asset_analytics')
         .insert([
           {
