@@ -19,10 +19,33 @@ export const metadata: Metadata = {
   },
   description: 'Download 100% free verified game optimization configs, ultra-low latency registry tweaks, FPS boosters, and network patches. Trusted by the BrokenCheats community.',
   keywords: [
-    'free game optimizer', 'fps boost', 'registry tweaks', 'low latency config',
-    'brokencheats', 'free cheats assets', 'network tweak', 'windows optimizer',
+    'brokencheats', 'free cheats', 'free fire cheats', 'free fire aimbot', 'free fire hacks',
+    'panels', 'free panels', 'gaming panels', 'cheat panels', 'game optimizer', 'fps boost',
+    'registry tweaks', 'low latency config', 'network tweak', 'windows optimizer',
     'gaming performance', 'latency patch', 'game configs', 'free gaming tools',
-    'fps unlocker', 'ping reducer', 'free store', 'brokencheats store'
+    'fps unlocker', 'ping reducer', 'free store', 'brokencheats store', 'roblox hacks',
+    'roblox exploits', 'roblox scripts', 'krnl', 'synapse x free', 'script executor',
+    'fivem cheats', 'fivem spoofer', 'hwid spoofer free', 'hwid changer', 'valorant cheats',
+    'valorant triggerbot', 'valorant aimbot', 'cs2 cheats', 'cs2 wallhack', 'cs2 aimbot',
+    'fortnite cheats', 'fortnite softaim', 'fortnite aimbot free', 'apex legends cheats',
+    'apex aimbot', 'warzone cheats', 'warzone unlock tool', 'cod cheats', 'rust cheats',
+    'rust scripts', 'rainbow six siege cheats', 'r6s cheats', 'tarkov cheats', 'eft cheats',
+    'gta 5 mod menu', 'gta v mods', 'kiddion mod menu', 'stand mod menu', '2take1 free',
+    'minecraft clients', 'vape v4 free', 'minecraft ghost client', 'lunar client fps boost',
+    'badlion client', 'osu cheats', 'osu relax hack', 'genshin impact cheats', 'genshin mods',
+    'bypass eac', 'bypass battleye', 'bypass vanguard', 'anti-cheat bypass', 'driver bypass',
+    'ring0 bypass', 'kernel cheats', 'external aimbot', 'internal cheats', 'memory editor',
+    'cheat engine bypass', 'undedected cheats', 'free undetected hacks', 'game hackers',
+    'game hacking forum', 'cheating community', 'mod menu', 'aim assist', 'recoil macro',
+    'no recoil script', 'bloody mouse macro', 'logitech macro', 'razer synapse macro',
+    'aimlab rank up', 'mouse acceleration fix', 'markc mouse fix', 'timer resolution tool',
+    'islc free', 'intelligent standby list cleaner', 'process lasso pro', 'tcp optimizer',
+    'dns jumper', 'sg tcp optimizer', 'filterkeys setter', 'keyboard input lag fix',
+    'monitor overclocking', 'cru utility', 'custom resolution utility', 'nvidia profile inspector',
+    'amd radeon tweaks', 'gpu overclocking', 'msi afterburner', 'cpu unparking tool',
+    'parkcontrol', 'windows 10 debloater', 'windows 11 debloater', 'revios', 'atlasos',
+    'custom os gaming', 'custom windows iso', 'tweaked windows', 'dpc latency checker',
+    'latencymon', 'interrupt affinity policy tool', 'msi mode utility', 'free tweaks'
   ],
   authors: [{ name: 'BrokenCheats', url: 'https://free.brokencheats.store' }],
   creator: 'BrokenCheats',
@@ -113,7 +136,7 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#1e40af" />
         <meta name="color-scheme" content="dark" />
-        {/* JSON-LD Schema.org structured data */}
+        <link rel="manifest" href="/manifest.json" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
