@@ -189,7 +189,7 @@ export default function DownloadClientPage({ asset }: DownloadClientPageProps) {
 
                   {!missionCompleted && (
                     <a
-                      href="https://omg10.com/4/11455896"
+                      href="https://omg10.com/4/11454290"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-xl font-bold text-sm bg-slate-800 text-white hover:bg-slate-700 transition-colors"

@@ -91,7 +91,7 @@ export default function AdsterraBanners({ format, className = '' }: AdsterraBann
         </div>
 
         <a
-          href="https://omg10.com/4/11455896"
+          href="https://omg10.com/4/11460998"
           target="_blank"
           rel="noopener noreferrer"
           className="px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-blue-600 to-cyan-500 text-white hover:opacity-90 transition-all shrink-0 flex items-center gap-1.5 shadow-lg shadow-blue-600/25"

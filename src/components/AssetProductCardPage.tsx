@@ -82,14 +82,14 @@ export default function AssetProductCardPage({ asset, relatedAssets = [] }: Asse
         body: JSON.stringify({ action: 'increment_download' }),
       }).then(r => r.json()).then(d => {
         if (d.success && d.download_count) setDownloadCount(d.download_count);
-      }).catch(() => {});
+      }).catch(() => { });
 
       // 2. Record download event in analytics store
       fetch(`/api/analytics`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ asset_slug: asset.slug, event_type: 'download' }),
-      }).catch(() => {});
+      }).catch(() => { });
 
     } catch (err) {
       console.error('Error recording download metric:', err);
@@ -177,8 +177,8 @@ export default function AssetProductCardPage({ asset, relatedAssets = [] }: Asse
                       key={idx}
                       onClick={() => setActiveImageIndex(idx)}
                       className={`w-20 h-14 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${activeImageIndex === idx
-                          ? 'border-blue-500 scale-105 shadow-lg shadow-blue-500/20'
-                          : 'border-slate-800 opacity-60 hover:opacity-100'
+                        ? 'border-blue-500 scale-105 shadow-lg shadow-blue-500/20'
+                        : 'border-slate-800 opacity-60 hover:opacity-100'
                         }`}
                     >
                       <img src={imgUrl} alt="Thumbnail" className="w-full h-full object-cover" />
@@ -431,7 +431,7 @@ export default function AssetProductCardPage({ asset, relatedAssets = [] }: Asse
 
                 {!missionCompleted && isUnlocked && (
                   <a
-                    href="https://omg10.com/4/11455896"
+                    href="https://omg10.com/4/11454290"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block w-full py-3 px-4 rounded-xl text-xs font-bold text-white hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors text-center shadow-lg"
