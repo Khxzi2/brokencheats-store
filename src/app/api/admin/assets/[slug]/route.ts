@@ -63,7 +63,7 @@ export async function DELETE(
     // First get the asset to find any stored file path
     const { data: asset, error: fetchErr } = await supabaseAdmin
       .from('assets')
-      .select('file_path')
+      .select('*')
       .eq('slug', slug)
       .single();
 
@@ -77,7 +77,7 @@ export async function DELETE(
       const { error: storageErr } = await supabaseAdmin.storage
         .from('assets_bucket')
         .remove([asset.file_path]);
-      
+
       if (storageErr) {
         console.warn('Storage file deletion warning:', storageErr.message);
         // Don't throw — still delete the DB record
