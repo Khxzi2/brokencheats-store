@@ -96,7 +96,9 @@ export default function AssetProductCardPage({ asset, relatedAssets = [] }: Asse
     } finally {
       let downloadUrl = asset.direct_download_url;
       if (asset.file_path) {
-        if (asset.file_path.startsWith('/')) {
+        if (asset.file_path.startsWith('http')) {
+          downloadUrl = asset.file_path;
+        } else if (asset.file_path.startsWith('/')) {
           downloadUrl = asset.file_path;
         } else {
           const { data } = supabase.storage.from('assets_bucket').getPublicUrl(asset.file_path);
