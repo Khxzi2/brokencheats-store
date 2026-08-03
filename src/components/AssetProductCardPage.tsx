@@ -440,16 +440,7 @@ export default function AssetProductCardPage({ asset, relatedAssets = [] }: Asse
                   </a>
                 )}
 
-                {isUnlocked && asset.direct_download_url && (
-                  <a
-                    href={asset.direct_download_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full py-3 px-4 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors text-center"
-                  >
-                    Alternate Direct Link <ExternalLink className="w-3 h-3 inline ml-1" />
-                  </a>
-                )}
+
               </div>
 
               {/* Security Trust Badges */}
